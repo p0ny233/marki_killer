@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="xposedscope">
+        <!--        <item>包名1</item>-->
+        <!--        <item>包名2</item>-->
+        <item>com.ai.marki</item>
+
+    </string-array>
+</resources>
