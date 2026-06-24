@@ -125,13 +125,22 @@ public class HookCore {
      */
     public static XC_MethodHook hookCodeForCcameraMirror(){
         return new XC_MethodHook() { // 回调
+            private boolean isReplace;
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
                 if (Tools.getIsReplacePic())
                     if (((String)param.args[0]).equals("key_camera_mirror")){
-                        param.args[0] = "key_camera_mirror_valxxx";
+                        isReplace = true;
                     }
+            }
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+                if (isReplace)
+                    param.setResult(false);
+                isReplace = false;
             }
         };
     }

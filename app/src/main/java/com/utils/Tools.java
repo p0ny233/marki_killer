@@ -98,16 +98,21 @@ public class Tools {
      */
     public static void switchReplace(boolean z, String picPath){
         SharedPreferences.Editor editor = sp.edit();
-
-        editor.putBoolean ("isReplace", z);
+        if (z)
+            editor.putString ("isReplace", "Y");
+        else
+            editor.putString ("isReplace", "N");
         editor.putString ("picPath", picPath);
         editor.apply();
         XposedBridge.log("xposed_module, switchReplace: " + z);
     }
 
     public static boolean getIsReplacePic(){
-        return sp.getBoolean("isReplace", false);
+        // return sp.getBoolean("isReplace", false);
+        String ret = sp.getString("isReplace", "N");
+        return ret.equals("Y");
     }
+
 
     public static String getPicPath(){
         return sp.getString ("picPath", "");
