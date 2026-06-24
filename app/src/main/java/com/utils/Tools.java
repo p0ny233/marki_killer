@@ -2,9 +2,7 @@ package com.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
 import java.security.SecureRandom;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -24,11 +22,12 @@ public class Tools {
             if (ctx == null)
                 ctx = context;
             if (sp == null){
-                sp = ctx.getSharedPreferences("mark_crack_time", Context.MODE_PRIVATE);
+                sp = ctx.getSharedPreferences("mark_crack", Context.MODE_PRIVATE);
                 sp.edit().clear().apply();
             }
         }
     }
+
     // 从 本地文件 中获取时间
     public static long getTargetTime() {
         /*
@@ -36,7 +35,6 @@ public class Tools {
             首先要获取 context 实例
             https://xrefandroid.com/android-11.0.0_r48/xref/frameworks/base/core/java/android/app/Application.java#350
          */
-//        SharedPreferences sp = ctx.getSharedPreferences("marki_crack_info", Context.MODE_PRIVATE);
         long t = sp.getLong("target_time", 0);
         XposedBridge.log("t: " + t);
 
@@ -60,11 +58,11 @@ public class Tools {
             首先要获取 context 实例
             https://xrefandroid.com/android-11.0.0_r48/xref/frameworks/base/core/java/android/app/Application.java#350
          */
-        XposedBridge.log("setTargetTime");
+        XposedBridge.log("xposed_module, setTargetTime");
         SharedPreferences.Editor editor = sp.edit();
         editor.putLong("target_time", time);
         editor.apply();
-        XposedBridge.log("set target_time: " + time);
+        XposedBridge.log("xposed_module, set target_time: " + time);
 
         /*
 
@@ -85,9 +83,6 @@ public class Tools {
     /*
         随机生成 Android id
      */
-
-    // 定义允许出现的字符（可根据需要增删）
-
     public static String generateAndroid_ID(int length) {
 
         StringBuilder sb = new StringBuilder(length);
@@ -97,5 +92,25 @@ public class Tools {
         }
         return sb.toString();
     }
+
+    /*
+        是否启用 替换照片
+     */
+    public static void switchReplace(boolean z, String picPath){
+        SharedPreferences.Editor editor = sp.edit();
+
+        editor.putBoolean ("isReplace", z);
+        editor.putString ("picPath", picPath);
+        editor.apply();
+        XposedBridge.log("xposed_module, switchReplace: " + z);
+    }
+
+    public static boolean getIsReplacePic(){
+        return sp.getBoolean("isReplace", false);
+    }
+
+    public static String getPicPath(){
+        return sp.getString ("picPath", "");
+
+    }
 }
-;

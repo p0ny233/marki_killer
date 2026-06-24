@@ -3,16 +3,9 @@ package com.hook;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.util.Log;
-import android.provider.Settings.Secure;
-import com.utils.Tools;
 import com.utils.server.SocketServerTools;
-
 import de.robv.android.xposed.IXposedHookLoadPackage;
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
-
 public class HookEntry implements IXposedHookLoadPackage {
 
     private static Context ctx;
@@ -21,6 +14,31 @@ public class HookEntry implements IXposedHookLoadPackage {
 
     private static String android_id;
     private static String origin_android_id;
+
+    public HookEntry(){
+
+    }
+
+    public static void setAndroidId(String id){
+        android_id = id;
+    }
+    public static String getAndroidId(){
+        return android_id;
+    }
+
+    public static void setOriginAndroId(String id){
+        origin_android_id = id;
+    }
+    public static String getOriginAndroidId(){
+        return origin_android_id;
+    }
+
+        public static void setCtx(Context c){
+        ctx = c;
+    }
+    public static Context getCtx(){
+        return ctx;
+    }
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -39,85 +57,49 @@ public class HookEntry implements IXposedHookLoadPackage {
             }
 
             // 获取 Context
-            XposedHelpers.findAndHookMethod(
-                    Class.forName("android.app.Application"),
-                    "attach",  // final void attach(Context context) {
+            HookUtils.installHookMethod("android.app.Application", "attach",
                     Context.class,
-                    new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            super.beforeHookedMethod(param);
-                            if (ctx == null){
-                                XposedBridge.log("xposed_module, 获取到ctx");
-                                ctx = (Context) param.args[0];
-                                new Tools.Inner(ctx);
-                            }
-                        }
-                    }
+                    HookCore.hookCodeForgetContext()
             );
 
             /*
                 验真次数, 修改返回值
              */
-            XposedHelpers.findAndHookMethod(
-                    Class.forName("android.provider.Settings$Secure"),  // 内部类
-                    "getString",
+            HookUtils.installHookMethod("android.provider.Settings$Secure", "getString",
                     ContentResolver.class,
                     String.class,
-                    new XC_MethodHook(){
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                            super.afterHookedMethod(param);
-                            // 生成随机id
-
-                            if (android_id == null)
-                                android_id = Tools.generateAndroid_ID(16);
-
-                            Object obj = param.getResult();
-
-                            if (origin_android_id == null){
-                                obj = param.getResult();
-                                if (obj == null)
-                                    return;
-                                origin_android_id =  ((String)obj).length() == 16 ? (String) param.getResult() : null ;
-                                XposedBridge.log("xposed_module, origin_android_id: " + origin_android_id);
-
-                            }
-
-                            XposedBridge.log("xposed_module, getString 原结果: " + obj);
-                            if (obj == null){
-                                return;
-                            }
-
-                            if (param.getResult().toString().equals(origin_android_id)){
-                                XposedBridge.log("xposed_module, 原android_id: " + param.getResult() + " , 修改后: " + android_id);
-                                param.setResult(android_id);
-                            }
-                        }
-                    }
+                    HookCore.hookCodeForResetAndroidId()
             );
 
             /*
                 自定义水印时间
              */
-            XposedHelpers.findAndHookConstructor(
-                    "com.ai.marki.common.util.n1",
+            HookUtils.installHookConstructorMethod("com.ai.marki.common.util.n1",
                     lpparam.classLoader,
                     long.class, // 第一个参数类型
                     long.class, // 第二个参数类型
-                    new XC_MethodHook() { // 回调
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            super.beforeHookedMethod(param);
+                    HookCore.hookCodeForCustomTimeStamp()
+                    );
 
-                            long time = Tools.getTargetTime();
-                            XposedBridge.log("xposed_module, 时间戳: " + time + ", 时间: " + Tools.formatTime(time));
-                            if (time != 0){
-                                param.args[0] = time;  // 修改 有参构造函数的参数值
-                            }
-                        }
-                    }
-            );
+            /*
+                替换照片 android.graphics.BitmapFactory.decodeStream.overload("java.io.InputStream").
+             */
+            HookUtils.installHookMethod("android.graphics.BitmapFactory",
+                    "decodeStream",
+                    java.io.InputStream.class,
+                    HookCore.hookCodeForReplacePic()
+                    );
+
+
+            /*
+                设置 翻转
+             */
+            HookUtils.installHookMethod("android.app.SharedPreferencesImpl",
+                    "getBoolean",
+                    String.class,
+                    boolean.class,
+                    HookCore.hookCodeForCcameraMirror()
+                    );
         }
     }
 }
