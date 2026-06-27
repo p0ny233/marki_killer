@@ -1,240 +1,224 @@
 package com.example.clientformarki;
 
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.NumberPicker;
-import android.widget.TextView;
-import android.widget.Toast;
-
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import androidx.appcompat.app.AppCompatActivity;
-
+import com.example.bean.Message;
+import com.example.bean.PhotoMessage;
+import com.example.bean.TimeMessage;
 import com.example.server.ClientSocketServer;
+import com.example.tool.LogUtils;
+import com.example.tool.Tools;
+import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
+import com.google.android.material.imageview.ShapeableImageView;
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
+import java.io.FileNotFoundException;
+import java.util.concurrent.LinkedBlockingQueue;
 
-import java.net.SocketException;
-import java.util.Calendar;
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ClientSocketServer.Callback{
 
     private static final String TAG = "ClientForMarki";
-    private NumberPicker pickerYear;
-    private NumberPicker pickerMonth;
-    private NumberPicker pickerDay;
-    private NumberPicker pickerHour;
-    private NumberPicker pickerMinute;
-    private Button btnGetTime;
-    private Button btnInitServer;
-    private Button btnCheatTime;
-    private TextView tvResult;
+    private int CHOOSE_CODE = 3;
 
-    private static ClientSocketServer mClientSocketServer;
+    // 按钮
+    private Button dateBtn;
+    private FrameLayout frameLayoutBtn;
+    private Button initBtn;
+    private Button clearLogBtn;
+    private Button confirmBtn;
+    private ShapeableImageView preview_img;
+    private MaterialTimePicker timePicker;
+    private EditText dateEd;
+    private EditText logEd;
+    private String dateTime;
+    // imageUri
+    private Uri imgUri;
+
+    private ClientSocketServer mClientSocketServer;
+
+    private LinkedBlockingQueue<Message> mQueue =  new LinkedBlockingQueue<Message>();
+
+    private void initGui(){
+        // 初始化控件
+        dateBtn = findViewById(R.id.dateBtn);
+        dateEd = findViewById(R.id.dateEd);
+        initBtn = findViewById(R.id.initBtn);
+        confirmBtn = findViewById(R.id.confirmBtn);
+        preview_img = findViewById(R.id.preview_img);  // 展示图片控件
+        logEd = findViewById(R.id.logEd);
+        clearLogBtn = findViewById(R.id.clearLogBtn);
+
+        confirmBtn.setEnabled(false);
+
+        // 图片预览区
+        frameLayoutBtn = findViewById(R.id.pic_select);
+        // 创建 GradientDrawable
+        GradientDrawable drawable = new GradientDrawable();
+        // 设置边框（宽度，颜色）
+        drawable.setStroke(3, Color.GRAY);
+        // 设置背景透明
+        drawable.setColor(Color.TRANSPARENT);
+        frameLayoutBtn.setBackground(drawable);
+
+        // 建立通信
+        initBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new Thread(){
+                    @Override
+                    public void run() {
+                        if(mClientSocketServer == null)
+                            mClientSocketServer = new ClientSocketServer(MainActivity.this, mQueue);
+
+                        if (!mClientSocketServer.getSocketState() || !mClientSocketServer.getComunicationStatus())
+                            mClientSocketServer.createSocket();
+
+                        if (mClientSocketServer.getSocketState() && mClientSocketServer.getComunicationStatus()){
+                            runOnUiThread(()->{
+                                logEd.append(LogUtils.debug("初始化服务成功"));
+                                confirmBtn.setEnabled(true);
+                            });
+                        }else {
+                            runOnUiThread(()->{
+                                logEd.append(LogUtils.debug("初始化服务成失败"));
+                            });
+                        }
+                    }
+                }.start();
+            }
+        });
+
+        // 点击按钮获取当前选中的时间
+        dateBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                // 创建一个 datepickerDialog
+                MaterialDatePicker datePicker = MaterialDatePicker.Builder.datePicker()
+                        .setTitleText("Select dates")
+                        .build();
+
+                datePicker.show(getSupportFragmentManager(), "TAG");
+
+                datePicker.addOnPositiveButtonClickListener(new MaterialPickerOnPositiveButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(Object selection) {
+                        dateTime = Tools.formatTime(Long.valueOf(selection.toString()));
+                        timePicker.show(getSupportFragmentManager(), "TAG");
+                    }
+                });
+
+                // 时间
+                timePicker = new MaterialTimePicker.Builder()
+                        .setTimeFormat(TimeFormat.CLOCK_24H)
+                        .setHour(7)
+                        .setMinute(50)
+                        .setTitleText("选择时间")
+                        .setInputMode(MaterialTimePicker.INPUT_MODE_CLOCK)
+                        .build();
+                timePicker.addOnPositiveButtonClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        // 点击确定
+                        Log.d(TAG, "addOnPositiveButtonClickListener");
+                        String time = new String(String.format(" %02d:%02d", timePicker.getHour(), timePicker.getMinute()));
+                        dateTime += time;
+                        dateEd.setText(dateTime);
+                    }
+                });
+            }
+        });
+
+        // 点击选择图片
+        frameLayoutBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // 弹出进入相册的窗口
+                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+                startActivityForResult(intent, CHOOSE_CODE);
+            }
+        });
+
+        clearLogBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                logEd.setText("");
+            }
+        });
+
+        /*
+            确认修改，根据配置信息，封装 Message类
+         */
+        confirmBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                boolean m;
+                if (!mClientSocketServer.getSocketState() || !mClientSocketServer.getComunicationStatus()){
+                    logEd.append(LogUtils.debug("修改失败，请先重新初始化"));
+                }
+
+                TimeMessage timeMessage = new TimeMessage();
+                PhotoMessage photoMessage = new PhotoMessage();
+                Message message = new Message();
+
+                message.setPhotoMessage(photoMessage);
+                message.setTimeMessage(timeMessage);
+
+                String timeStamp = Tools.formatTimeToStamp(dateEd.getText().toString());
+                timeMessage.setTimestamp(timeStamp);
+
+                if (timeStamp != null)
+                    m = true;
+
+                byte[] buffer = null;
+                try {
+                    if (imgUri != null){
+                        buffer = Tools.readRawBytesFromInputStream(getContentResolver().openInputStream(imgUri));
+                        m = true;
+                    }
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                } catch (NullPointerException e){
+                }
+                photoMessage.setImageBuffer(buffer);
+                mQueue.offer(message);
+            }
+        });
+    } // initGui end
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // 初始化控件
-        pickerYear   = findViewById(R.id.pickerYear);
-        pickerMonth  = findViewById(R.id.pickerMonth);
-        pickerDay    = findViewById(R.id.pickerDay);
-        pickerHour   = findViewById(R.id.pickerHour);
-        pickerMinute = findViewById(R.id.pickerMinute);
-        btnGetTime   = findViewById(R.id.btnGetTime);
-        tvResult     = findViewById(R.id.tvResult);
-        btnInitServer = findViewById(R.id.btnInitServer);
-        btnCheatTime = findViewById(R.id.btnCheatTime);
-
-
-        // 用当前时间初始化各选择器
-        Calendar now = Calendar.getInstance();
-        int currentYear   = now.get(Calendar.YEAR);
-        int currentMonth  = now.get(Calendar.MONTH) + 1; // Calendar.MONTH 从 0 开始
-        int currentDay    = now.get(Calendar.DAY_OF_MONTH);
-        int currentHour   = now.get(Calendar.HOUR_OF_DAY);
-        int currentMinute = now.get(Calendar.MINUTE);
-
-        // 年：当前年前后 10 年
-        pickerYear.setMinValue(currentYear - 10);
-        pickerYear.setMaxValue(currentYear + 10);
-        pickerYear.setValue(currentYear);
-        pickerYear.setWrapSelectorWheel(false);
-
-        // 月：1 ~ 12
-        pickerMonth.setMinValue(1);
-        pickerMonth.setMaxValue(12);
-        pickerMonth.setValue(currentMonth);
-        pickerMonth.setWrapSelectorWheel(true);
-        // 显示两位数补零
-        pickerMonth.setDisplayedValues(new String[]{
-                "01","02","03","04","05","06","07","08","09","10","11","12"
-        });
-
-        // 日：先初始化为 1~31，随月份变化动态调整
-        pickerDay.setMinValue(1);
-        pickerDay.setMaxValue(getDaysInMonth(currentYear, currentMonth));
-        pickerDay.setValue(currentDay);
-        pickerDay.setWrapSelectorWheel(true);
-
-        // 时：0 ~ 23
-        pickerHour.setMinValue(0);
-        pickerHour.setMaxValue(23);
-        pickerHour.setValue(currentHour);
-        pickerHour.setWrapSelectorWheel(true);
-        pickerHour.setDisplayedValues(generateTwoDigitStrings(0, 23));
-
-        // 分：0 ~ 59
-        pickerMinute.setMinValue(0);
-        pickerMinute.setMaxValue(59);
-        pickerMinute.setValue(currentMinute);
-        pickerMinute.setWrapSelectorWheel(true);
-        pickerMinute.setDisplayedValues(generateTwoDigitStrings(0, 59));
-
-        // 年或月变化时，动态更新日的最大值
-        NumberPicker.OnValueChangeListener updateDayRange = new NumberPicker.OnValueChangeListener() {
-            @Override
-            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
-                int year  = pickerYear.getValue();
-                int month = pickerMonth.getValue();
-                int maxDay = getDaysInMonth(year, month);
-                // 必须先设 max 再刷新，避免当前值超出范围
-                if (pickerDay.getValue() > maxDay) {
-                    pickerDay.setValue(maxDay);
-                }
-                pickerDay.setMaxValue(maxDay);
-            }
-        };
-        pickerYear.setOnValueChangedListener(updateDayRange);
-        pickerMonth.setOnValueChangedListener(updateDayRange);
-
-        // 点击按钮获取当前选中的时间
-        btnGetTime.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int year   = pickerYear.getValue();
-                int month  = pickerMonth.getValue();
-                int day    = pickerDay.getValue();
-                int hour   = pickerHour.getValue();
-                int minute = pickerMinute.getValue();
-
-                // 秒取设备当前秒数
-                int second = Calendar.getInstance().get(Calendar.SECOND);
-
-                String result = String.format(
-                        "%d-%02d-%02d %02d:%02d:%02d",  // 2026-04-01 08:20:00
-                        year, month, day, hour, minute, second
-                );
-                tvResult.setText(result);
-            }
-        });
-
-
-        // 初始化按钮
-        btnInitServer.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Thread t = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        init_cheat();
-                    }
-                });
-                try {
-                    t.start();
-                    t.join(3000);
-                    if (mClientSocketServer.getSocketState() && mClientSocketServer.getComunicationStatus())
-                        Toast.makeText(MainActivity.this, "初始化成功", Toast.LENGTH_SHORT).show();
-                    else{
-                        Toast.makeText(MainActivity.this, "初始化失败", Toast.LENGTH_SHORT).show();
-                        mClientSocketServer = null;
-                    }
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-
-            }
-        });
-
-        // 发送时间按钮
-        btnCheatTime.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                if (mClientSocketServer == null || !mClientSocketServer.getSocketState()){
-                    Toast.makeText(MainActivity.this, "先点击初始化服务,才能进行后续操作",
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                if (!mClientSocketServer.getComunicationStatus()){
-                    Toast.makeText(MainActivity.this, "与马克水印相机通信失败，" +
-                                    "确保马克水印相机已在运行，然后重新点击初始化按钮",
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                String time = tvResult.getText().toString();
-                if (!time.startsWith("2"))
-                {
-                    Toast.makeText(MainActivity.this,
-                            "先选择日期，再点击【修改时间】按钮",
-                            Toast.LENGTH_SHORT
-                    ).show();
-                    return;
-                }
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        cheatForTime();
-                    }
-                }).start();
-
-                Toast.makeText(MainActivity.this,
-                        "成功修改时间，请重新到水印App",
-                        Toast.LENGTH_SHORT
-                ).show();
-            }
-        });
-    }// onCreate end
-
-    private void init_cheat(){
-        if (mClientSocketServer == null)
-            mClientSocketServer = new ClientSocketServer();
-        if (!mClientSocketServer.getSocketState())
-            mClientSocketServer.createSocket();
+        initGui();
     }
 
-    private void cheatForTime(){
-        String time = tvResult.getText().toString();
-        try {
-            mClientSocketServer.sendMessage(time);
-        }catch (SocketException e){
-            if (e.getMessage().equals("Broken pipe")){
-                mClientSocketServer = null;
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == CHOOSE_CODE && resultCode==RESULT_OK){  // 从相册回来
+            if (data.getData() != null){
+                imgUri = data.getData(); // 获得已选择照片的路径对象
+                preview_img.setImageURI(imgUri);
             }
         }
     }
 
-    /**
-     * 返回指定年月的天数（正确处理闰年 2 月）
-     */
-    private int getDaysInMonth(int year, int month) {
-        Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.YEAR, year);
-        cal.set(Calendar.MONTH, month - 1); // Calendar.MONTH 从 0 开始
-        return cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+    // 回调函数，作为其它类的cb
+    public void updateLog(String msg){
+        logEd.append(LogUtils.debug(msg));
     }
 
-    /**
-     * 生成从 start 到 end 的两位数补零字符串数组
-     * 例如：0 -> "00"，5 -> "05"，23 -> "23"
-     */
-    private String[] generateTwoDigitStrings(int start, int end) {
-        String[] result = new String[end - start + 1];
-        for (int i = start; i <= end; i++) {
-            result[i - start] = String.format("%02d", i);
-        }
-        return result;
-    }
 }
