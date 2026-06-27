@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias {libs.plugins.protobuf}
 }
 
 android {
@@ -54,4 +55,21 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    implementation("com.google.protobuf:protobuf-javalite:3.25.5")
+}
+
+// ──── 配置 protoc 编译器 ────
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.5"   // 编译器 artifact，版本与上面一致
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("java") {
+                    option("lite")   // 生成精简版代码
+                }
+            }
+        }
+    }
 }

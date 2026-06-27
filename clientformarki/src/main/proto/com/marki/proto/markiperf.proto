@@ -1,0 +1,20 @@
+syntax="proto3";
+
+package com.marki.proto;
+
+message PhotoMessage{
+  bytes data = 1;                     // 图片bytes array
+  string fileMd5 = 2;
+  uint32 fileSize=3;
+}
+
+message TimeMessage{
+  string timestamp=1;
+}
+
+message MarkiMessage{
+  // 指令类型 修改时间还是修改图片, 或者两者 都修改
+  string insType = 1;
+  PhotoMessage photo=2;
+  TimeMessage timeMessage=3;
+}
