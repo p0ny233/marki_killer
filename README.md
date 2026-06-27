@@ -1,3 +1,17 @@
+
+模拟器
+
+```shell
+adb connect 模拟器桥接IP
+
+adb shell pm uninstall com.example.clientformarki
+
+
+```
+
+
+真机
+
 ```shell
 adb connect 192.168.5.9
 
