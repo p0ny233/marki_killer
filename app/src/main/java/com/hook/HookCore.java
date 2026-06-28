@@ -3,9 +3,8 @@ package com.hook;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import com.hook_xp.marki.HookEntry;
 import com.utils.Tools;
-import java.io.File;
-
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 
@@ -96,21 +95,18 @@ public class HookCore {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 super.afterHookedMethod(param);
-                // 根据 开关决定是否 启用图片替换
-                if(!Tools.getIsReplacePic())
-                    return;
-
                 // 读取文件
-                String path = Tools.getPicPath();
-                File file = new File(path);
-
-                if (!file.exists()){
-                    XposedBridge.log("xposed_module, 替换图片路径不存在, path = [" + path + "]");
-                    return;
+                java.io.ByteArrayOutputStream imageBuffer = Tools.getImageBuffer();
+                Bitmap bmp = null;
+                XposedBridge.log("xposed_module, in hookCodeForReplacePic");
+                if (imageBuffer != null){
+                    byte[] buf = imageBuffer.toByteArray();
+                    Tools.printHexFromByteArray(buf, 16);
+                    XposedBridge.log("xposed_module, in hookCodeForReplacePic imageBuffer != null" +
+                            ", buf.length: " + buf.length);
+                    bmp = BitmapFactory.decodeByteArray(buf, 0, buf.length);
+                    param.setResult(bmp);
                 }
-                Bitmap bmp = BitmapFactory.decodeFile(path);
-                param.setResult(bmp);
-                XposedBridge.log("xposed_module, 替换图片成功, path = [" + path + "]");
             }
         };
     }
@@ -123,16 +119,14 @@ public class HookCore {
             拍摄 -> 替换 -> 翻转 -> 翻转照片
         因此控制不要去翻转即可
      */
-    public static XC_MethodHook hookCodeForCcameraMirror(){
+    public static XC_MethodHook hookCodeForCameraMirror(){
         return new XC_MethodHook() { // 回调
             private boolean isReplace;
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                if (Tools.getIsReplacePic())
-                    if (((String)param.args[0]).equals("key_camera_mirror")){
-                        isReplace = true;
-                    }
+                if (((String)param.args[0]).equals("key_camera_mirror"))
+                    isReplace = true;
             }
 
             @Override

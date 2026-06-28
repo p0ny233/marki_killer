@@ -1,8 +1,10 @@
-package com.hook;
+package com.hook_xp.marki;
 
 import android.content.ContentResolver;
 import android.content.Context;
 import android.util.Log;
+import com.hook.HookCore;
+import com.hook.HookUtils;
 import com.utils.server.SocketServerTools;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -98,7 +100,7 @@ public class HookEntry implements IXposedHookLoadPackage {
                     "getBoolean",
                     String.class,
                     boolean.class,
-                    HookCore.hookCodeForCcameraMirror()
+                    HookCore.hookCodeForCameraMirror()
                     );
         }
     }

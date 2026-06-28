@@ -2,6 +2,7 @@ package com.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import java.io.ByteArrayOutputStream;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -13,6 +14,7 @@ public class Tools {
     private static final String ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    private static final ImageUtils imageUtils = new ImageUtils();
     private static Context ctx;
 
     private static SharedPreferences sp;
@@ -58,7 +60,7 @@ public class Tools {
             首先要获取 context 实例
             https://xrefandroid.com/android-11.0.0_r48/xref/frameworks/base/core/java/android/app/Application.java#350
          */
-        XposedBridge.log("xposed_module, setTargetTime");
+        XposedBridge.log("xposed_module, setTargetTime: " + time);
         SharedPreferences.Editor editor = sp.edit();
         editor.putLong("target_time", time);
         editor.apply();
@@ -75,7 +77,7 @@ public class Tools {
 
     public static String formatTime(long timestamp){
         Date date = new Date(timestamp);
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         String formattedDate = sdf.format(date);
         return formattedDate;
     }
@@ -93,29 +95,39 @@ public class Tools {
         return sb.toString();
     }
 
-    /*
-        是否启用 替换照片
-     */
-    public static void switchReplace(boolean z, String picPath){
-        SharedPreferences.Editor editor = sp.edit();
-        if (z)
-            editor.putString ("isReplace", "Y");
-        else
-            editor.putString ("isReplace", "N");
-        editor.putString ("picPath", picPath);
-        editor.apply();
-        XposedBridge.log("xposed_module, switchReplace: " + z);
+    public static ByteArrayOutputStream getImageBuffer() {
+        return imageUtils.getImageBuffer();
+    }
+    public static void setImageBuffer(byte[] buf) {
+        imageUtils.setImageBuffer(buf, 0, buf.length);
     }
 
-    public static boolean getIsReplacePic(){
-        // return sp.getBoolean("isReplace", false);
-        String ret = sp.getString("isReplace", "N");
-        return ret.equals("Y");
+    public static void printHexFromByteArray(byte[] bytes, int n){
+        if (bytes == null)
+            return ;
+        int len = Math.min(bytes.length, n);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < len; i++) {
+            sb.append(String.format("%02X ", bytes[i]));
+        }
+        XposedBridge.log("xposed_module, " + sb.toString().trim());
+    }
+}
+
+class ImageUtils{
+    private ByteArrayOutputStream ImageBuffer;
+
+    public void setImageBuffer(ByteArrayOutputStream imageBuffer) {
+        ImageBuffer = imageBuffer;
     }
 
+    public ByteArrayOutputStream getImageBuffer() {
+        return ImageBuffer;
+    }
 
-    public static String getPicPath(){
-        return sp.getString ("picPath", "");
-
+    public void setImageBuffer(byte[] buf, int i, int length) {
+        if (this.ImageBuffer == null)
+            this.ImageBuffer = new ByteArrayOutputStream();
+        this.ImageBuffer.write(buf, i, length);
     }
 }

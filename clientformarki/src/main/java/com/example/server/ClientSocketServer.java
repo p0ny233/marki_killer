@@ -51,12 +51,6 @@ public class ClientSocketServer{
 
         if (socket != null){
             try {
-                if (out != null){
-                    out.close();
-                }
-                if (inputStream != null){
-                    inputStream.close();
-                }
                 socket.close();
             } catch (IOException e) {
                 ((MainActivity)this.mCallback).runOnUiThread(
@@ -67,11 +61,26 @@ public class ClientSocketServer{
                 throw new RuntimeException(e);
             }
         }
+
+        if (out != null){
+            try {
+                out.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if (inputStream != null){
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         isInit = false;
         outPipeState = false;
         inputStreamPipeState = false;
-//        String host = "127.0.0.1";
-        String host = "192.168.5.8";
+        String host = "127.0.0.1";
 
         int port = 9012;
         socket = null;
@@ -88,6 +97,9 @@ public class ClientSocketServer{
             isInit = true;
             outPipeState = true;
             inputStreamPipeState = true;
+
+            Log.d(TAG, "isInit: " + isInit + ", outPipeState: "+ outPipeState
+                    + ", inputStreamPipeState :" + inputStreamPipeState);
 
             // 可以创建新的线程 循环
             new Thread(){
@@ -108,6 +120,7 @@ public class ClientSocketServer{
                     Log.d(TAG, "out.close();\n" + ex.getMessage() + "\n");
                     throw new RuntimeException(ex);
                 }
+                out = null;
             }
             if (inputStream != null){
                 try {
@@ -116,8 +129,19 @@ public class ClientSocketServer{
                     Log.d(TAG, "inputStream.close();\n" + ex.getMessage() + "\n");
                     throw new RuntimeException(ex);
                 }
+                inputStream = null;
+            }
+
+            if (socket != null){
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
             isInit = false;
+            outPipeState = false;
+            inputStreamPipeState = false;
         }
     }
 
@@ -140,7 +164,7 @@ public class ClientSocketServer{
 
                 }
                 // 设置时间
-                if (data.getTimeMessage().getTimestamp() != null){
+                if (data.getTimeMessage().getTimestamp() != 0){
                     timeMessageBuilder = Markiperf.TimeMessage.newBuilder();
                     timeMessageBuilder.setTimestamp(data.getTimeMessage().getTimestamp());
                     markiMessageBuilder.setTimeMessage(timeMessageBuilder);
