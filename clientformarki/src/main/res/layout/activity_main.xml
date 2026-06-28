@@ -109,6 +109,7 @@
                 android:layout_height="wrap_content"
                 android:text="取消图片"
                 android:layout_marginBottom="30dp"
+                android:id="@+id/cancelBtn"
                 />
 
         </LinearLayout>

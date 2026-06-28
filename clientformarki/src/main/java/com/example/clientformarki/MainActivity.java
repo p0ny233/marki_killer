@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements ClientSocketServe
     private FrameLayout frameLayoutBtn;
     private Button initBtn;
     private Button clearLogBtn;
+    private Button cancelBtn;
     private Button confirmBtn;
     private ShapeableImageView preview_img;
     private MaterialTimePicker timePicker;
@@ -58,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements ClientSocketServe
         preview_img = findViewById(R.id.preview_img);  // 展示图片控件
         logEd = findViewById(R.id.logEd);
         clearLogBtn = findViewById(R.id.clearLogBtn);
+        cancelBtn = findViewById(R.id.cancelBtn);
 
         confirmBtn.setEnabled(false);
 
@@ -159,6 +161,17 @@ public class MainActivity extends AppCompatActivity implements ClientSocketServe
         });
 
         /*
+            取消预览的图片
+         */
+        cancelBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                imgUri = null;
+                preview_img.setImageDrawable(null);
+            }
+        });
+
+        /*
             确认修改，根据配置信息，封装 Message类
          */
         confirmBtn.setOnClickListener(new View.OnClickListener() {
@@ -176,10 +189,10 @@ public class MainActivity extends AppCompatActivity implements ClientSocketServe
                 message.setPhotoMessage(photoMessage);
                 message.setTimeMessage(timeMessage);
 
-                String timeStamp = Tools.formatTimeToStamp(dateEd.getText().toString());
+                long timeStamp = Tools.formatTimeToStamp(dateEd.getText().toString());
                 timeMessage.setTimestamp(timeStamp);
 
-                if (timeStamp != null)
+                if (timeStamp != 0)
                     m = true;
 
                 byte[] buffer = null;

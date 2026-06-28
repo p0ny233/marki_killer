@@ -9,12 +9,11 @@ message PhotoMessage{
 }
 
 message TimeMessage{
-  string timestamp=1;
+  int64 timestamp=1;
 }
 
 message MarkiMessage{
   // 指令类型 修改时间还是修改图片, 或者两者 都修改
-  string insType = 1;
   PhotoMessage photo=2;
   TimeMessage timeMessage=3;
 }

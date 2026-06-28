@@ -10,20 +10,20 @@ import java.util.Date;
 public class Tools {
 
     /*
-        字符串类型的"2026-05-01 08:20" 转化为 字符串类型的"1777594800000"
+        字符串类型的"2026-05-01 08:20" 转化为 long 类型的时间戳 1777594800000
      */
-    public static String formatTimeToStamp(String formatTime){
+    public static long formatTimeToStamp(String formatTime){
         /*
             格式化的时间转为 时间戳字符串
          */
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         try {
             long timestamp = sdf.parse(formatTime).getTime();
-            return String.valueOf(timestamp);
+            return timestamp;
 
         } catch (ParseException e) {
 //            throw new RuntimeException(e);
-            return null;
+            return 0;
         }
     }
 
@@ -43,14 +43,12 @@ public class Tools {
         int byteReads = -1;
         try{
 
-            while ((byteReads = is.read(buffer))!= -1){
+            while ((byteReads = is.read(buffer))!= -1)
                 baos.write(buffer, 0, byteReads);
             return baos.toByteArray();
-            }
         }catch(IOException e){
             e.printStackTrace();
             return null;
         }
-        return null;
     }
 }

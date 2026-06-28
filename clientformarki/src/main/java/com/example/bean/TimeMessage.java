@@ -1,13 +1,13 @@
 package com.example.bean;
 
 public class TimeMessage {
-    private String timestamp;
+    private long timestamp;
 
-    public void setTimestamp(String timestamp) {
+    public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
 
-    public String getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 }
