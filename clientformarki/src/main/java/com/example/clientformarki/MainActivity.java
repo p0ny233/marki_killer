@@ -28,6 +28,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class MainActivity extends AppCompatActivity implements ClientSocketServer.Callback{
 
+    static {
+       System.loadLibrary("clientformarki");
+    }
+
     private static final String TAG = "ClientForMarki";
     private int CHOOSE_CODE = 3;
 

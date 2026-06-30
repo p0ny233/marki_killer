@@ -20,7 +20,14 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // 指定架构，最好是 ndk{} 放在 defaultConfig内部
+        // https://www.cnblogs.com/yongfengnice/p/18456883
+        ndk {
+            abiFilters.clear()
+            abiFilters.addAll(arrayOf("arm64-v8a"))  //这里指定的是源代码编译要支持编译出哪些架构的so库，一般支持"armeabi-v7a", "arm64-v8a"两个即可
+        }
     }
+
 
     buildTypes {
         release {
@@ -29,6 +36,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(arrayOf("arm64-v8a"))  //这里指定的是源代码编译要支持编译出哪些架构的so库，一般支持"armeabi-v7a", "arm64-v8a"两个即可
+            }
+
         }
     }
     compileOptions {
@@ -37,6 +50,13 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 }
 
