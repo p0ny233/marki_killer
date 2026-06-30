@@ -24,6 +24,9 @@ adb push clientformarki/build/outputs/apk/release/clientformarki-release-unsigne
 一个用于修改「水印相机」App 时间信息的 Android 工具
 
 ## 📖 项目简介
+
+**适用于 Android 8以上的设备**
+
 Marki Killer 是一个基于 Xposed 框架 的 Android 模块，通过 Hook 技术拦截并修改「水印相机」App 中与时间相关的系统调用，从而实现自定义水印时间显示的功能。
 
 项目主要包含两个模块：
